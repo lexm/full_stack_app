@@ -55,6 +55,10 @@ app.controller('MovieController', ['$scope', '$http', function($scope, $http) {
     console.log('oldMovie: ', oldMovie);
     console.log('movie: ', movie);
   }
+  this.rdate = function(movie) {
+    console.log(movie.release_date);
+    return moment(movie.release_date).format('MM-DD-YYYY');
+  }
   this.editMovie = function(movie) {
 
   }
