@@ -1,9 +1,10 @@
 'use strict';
 
 var gulp = require('gulp');
+var clean = require('gulp-clean');
 var eslint = require('gulp-eslint');
 var mocha = require('gulp-mocha');
-var webpack = require('gulp-webpack');
+var webpack = require('webpack-stream');
 
 var eslintRules = {
   'rules': {
@@ -45,10 +46,15 @@ var eslintRules = {
   'extends': 'eslint:recommended'
 };
 
-var path = ['*.js', 'test/*.js'];
+var paths = {
+  css:  ['app/*.css'],
+  html: ['app/*.html'],
+  js:   ['app/js/*.js', 'test/*.js'],
+  test: ['test/*_spec.js']
+};
 
 gulp.task('lint', function(){
-  return gulp.src(path)
+  return gulp.src(paths.js)
     .pipe(eslint(eslintRules))
     .pipe(eslint.format());
 });
@@ -60,22 +66,49 @@ gulp.task('mocha', function(){
     .pipe(mocha({reporter: 'nyan'}));
 });
 
-gulp.task('webpack', function() {
-  return gulp.src('./app/index.js')
-    .pipe(webpack(require('./webpack.config.js')))
-    .pipe(gulp.dest('./public/'))
-})
-
-var wpPath = ['*.js', 'app/*.js'];
-
-gulp.task('wp-watch',function() {
-  gulp.watch(wpPath, ['webpack']);
-})
-
-gulp.task('watch', function(){
-  gulp.watch(path, ['lint', 'mocha']);
+gulp.task('build:html', function() {
+  gulp.src('app/*.html')
+  .pipe(gulp.dest('public/'));
 });
 
-gulp.task('default', ['lint', 'mocha']);
+gulp.task('build:css', function() {
+  gulp.src('app/*.css')
+  .pipe(gulp.dest('public/'));
+});
 
-gulp.task('all', ['lint', 'mocha', 'watch']);
+gulp.task('build:js', function() {
+  return gulp.src('./app/js/index.js')
+    .pipe(webpack(require('./webpack.config.js')))
+    .pipe(gulp.dest('./public/'));
+});
+
+gulp.task('build:test', () => {
+  return gulp.src('test/*_spec.js')
+    .pipe(webpack({output: {filename: 'test_bundle.js'}}))
+    .pipe(gulp.dest('./test'));
+});
+
+gulp.task('watch:css', function() {
+  gulp.watch(paths.css, ['build:css']);
+});
+
+gulp.task('watch:html', function() {
+  gulp.watch(paths.html, ['build:html']);
+});
+
+gulp.task('watch:js', function() {
+  gulp.watch(paths.js, ['build:js']);
+});
+
+gulp.task('clean', function() {
+  return gulp.src('public', {read: false})
+        .pipe(clean({force: true}));
+});
+
+gulp.task('build:all', ['build:css', 'build:html', 'build:js']);
+
+gulp.task('watch:all', ['watch:css', 'watch:html', 'watch:js']);
+
+gulp.task('default', ['build:all', 'watch:all']);
+
+gulp.task('all', ['lint', 'default']);
